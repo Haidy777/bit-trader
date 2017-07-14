@@ -16,4 +16,8 @@ The whole project is currently very alpha-ish but I have the base "micro-trades"
 
 Since the whole thing is work-in-progress, currently there is no getting started but developers familiar with nodejs should be able to start it easely.
 
-#WIP :)
+If you wan't to support the development of this bot, my Bitcoin Address is:
+```
+1JWbKdnVHYVW5vcajsTwJpLFUeBntpqsw1
+```
+also you can contribute anytime through a pull-request ;)

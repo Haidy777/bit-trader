@@ -18,7 +18,7 @@ module.exports = {
 		});
 	},
 
-	sendControlMessage(child, action = '', params = {}){
+	sendControlMessage(child, action = '', params = null){
 		child.send({
 			type: 'control',
 			data: {

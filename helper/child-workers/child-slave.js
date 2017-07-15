@@ -1,16 +1,35 @@
 "use strict";
 
-const EventEmitter = require('events');
+// const EventEmitter = require('events');
 
-module.exports = class ChildSlave extends EventEmitter {
+const sendLogMessage = require('../ipc-helper').sendLogMessage;
+
+module.exports = (EventEmitter) => class extends EventEmitter {
 	constructor(options = {}, params = {}) {
 		super();
-		//TODO
+
+		this._options = options;
+		this._params = params;
+	}
+
+	startup() {
 		this.emit('ready');
 	}
 
 	handleData(data) {
-		//TODO
+		sendLogMessage('info', 'got data to handle');
+	}
+
+	start(params) {
+		sendLogMessage('info', 'starting my work', params);
+	}
+
+	stop(params) {
+		sendLogMessage('info', 'stopping my work', params);
+	}
+
+	teardown() {
+		this.emit('teardown');
 	}
 
 	control(data) {
@@ -18,14 +37,13 @@ module.exports = class ChildSlave extends EventEmitter {
 
 		switch (action) {
 			case 'start':
-				//TODO
+				this.start(data.params);
 				break;
 			case 'stop':
-				//TODO
+				this.stop(data.params);
 				break;
 			case 'teardown':
-				//TODO
-				this.emit('teardown');
+				this.teardown();
 				break;
 		}
 	}

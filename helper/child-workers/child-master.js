@@ -6,6 +6,7 @@ const _ = require('lodash');
 const Pact = require('bluebird');
 
 const fork = require('child_process').fork;
+const join = require('path').join;
 
 const sendControlMessage = require('../ipc-helper').sendControlMessage;
 
@@ -29,50 +30,79 @@ module.exports = class ChildMaster extends EventEmitter {
 	}
 
 	createWorker(params = {}) {
+		let id = uuid();
+
 		if (this._hasSingleChild) {
 			this.emit('log', 'info', `${LOG_PREFIX} creating single child instance for master`);
-			let child = this._child;
+			let child = this._child; //TODO child could be a promise
 
 			if (child.id) {
 				this.emit('log', 'info', `${LOG_PREFIX} destroying old child instance`);
 
 				child.once('exit', (exitCode) => {
 					if (exitCode === 0) {
-						this._child = this._createChild(uuid());
+						this._child = this._createChild(id, params);
 					}
 				});
 
 				this._teardownChild(child.id, params);
 			} else {
-				this._child = this._createChild(uuid());
+				this._child = this._createChild(id, params);
 			}
 		} else {
 			this.emit('log', 'info', `${LOG_PREFIX} adding a child instance to master`);
-			let id = uuid();
 
-			this._childs[id] = this._createChild(id);
+			this._childs[id] = this._createChild(id, params);
 		}
+
+		return id;
 	}
 
 	removeWorker(id) {
 		this._teardownChild(id);
 	}
 
+	removeAllWorkers() {
+		if (this._hasSingleChild) {
+			this._teardownChild(this._child.id);
+		} else {
+			_.forIn(this._childs, (child) => {
+				this._teardownChild(child.id);
+			});
+		}
+	}
+
 	controlWorker(id, command, params) {
-		sendControlMessage(this._getChild(id), command, params);
+		this._getChild(id).then((child) => {
+			sendControlMessage(child.child, command, params);
+		});
+	}
+
+	controlAllWorkers(command, params) {
+		if (this._hasSingleChild) {
+			sendControlMessage(this._child.child, command, params);
+		} else {
+			Pact.props(this._childs).then((childs)=>{
+				_.forIn(childs, (child) => {
+					sendControlMessage(child.child, command, params);
+				});
+			});
+		}
 	}
 
 	_getChild(id) {
 		if (this._hasSingleChild) {
 			return this._child;
 		} else {
-			return _.findBy(this._childs, 'id', id);
+			return Pact.props(this._childs, (childs) => {
+				return _.findBy(childs, 'id', id);
+			});
 		}
 	}
 
 	_createChild(childId, params) {
 		return new Pact((resolve, reject) => {
-			const child = fork('./child', [], {execArgv: []});
+			const child = fork(join(__dirname, 'child'), [], {execArgv: []});
 
 			child.once('message', (data) => {
 				if (data.type === 'ready') {
@@ -111,21 +141,23 @@ module.exports = class ChildMaster extends EventEmitter {
 	}
 
 	_teardownChild(childId) {
-		const child = this._getChild(childId);
-		//TODO emit log?
-		child.once('exit', (exitCode) => {
-			if (exitCode !== 0) {
-				//TODO emit log?
+		this._getChild(childId).then((child) => {
+			//TODO emit log?
+			child = child.child;
+			child.once('exit', (exitCode) => {
+				if (exitCode !== 0) {
+					//TODO emit log?
+				}
+			});
+
+			sendControlMessage(child, 'teardown');
+
+			if (this._hasSingleChild) {
+				this.child = null;
+			} else {
+				delete this._childs[childId];
 			}
 		});
-
-		sendControlMessage(child, 'teardown');
-
-		if (this._hasSingleChild) {
-			this.child = null;
-		} else {
-			delete this._childs[childId];
-		}
 	}
 
 	_childMessageHandler(childId, message) {
@@ -140,7 +172,9 @@ module.exports = class ChildMaster extends EventEmitter {
 				this.emit('data', data);
 				break;
 			default:
-				this.emit('log', 'verbose', this._prepareChildLogMessage(childId, message.message), data);
+				if (message.type !== 'ready') {
+					this.emit('log', 'verbose', this._prepareChildLogMessage(childId, message.message), data);
+				}
 				break;
 		}
 	}
@@ -148,7 +182,9 @@ module.exports = class ChildMaster extends EventEmitter {
 	_childErrorHandler(childId, err) {
 		//TODO emit log
 		if (this._restartOnDeath) {
-			this.createWorker(this._getChild(childId).params);
+			this._getChild(childId).then((child) => {
+				this.createWorker(child.params);
+			});
 		} else {
 			this._teardownChild(childId);
 		}
@@ -159,7 +195,9 @@ module.exports = class ChildMaster extends EventEmitter {
 			//Todo emit log
 			if (this._restartOnDeath) {
 				//Todo emit log
-				this.createWorker(this._getChild(childId).params);
+				this._getChild(childId).then((child) => {
+					this.createWorker(child.params);
+				});
 			}
 		}
 		//TODO emit log

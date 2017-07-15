@@ -3,7 +3,7 @@
 const ipcHelper = require('../ipc-helper');
 
 const sendMessage = ipcHelper.sendMessage;
-const sendLogMessage = ipcHelper.sendControlMessage;
+const sendLogMessage = ipcHelper.sendLogMessage;
 
 let slave = null;
 
@@ -15,9 +15,9 @@ process.on('message', (message) => {
 			const SlaveClass = require(data.childParams.slaveClass);
 			slave = new SlaveClass(data.childOptions, data.childParams);
 
-			slave.on('ready', () => {
-				sendMessage('ready');
-				sendLogMessage('info', `i'm ready`);
+			slave.once('ready', () => {
+				sendMessage('ready', 'ready to rock :)');
+				sendLogMessage('verbose', 'ready');
 			});
 
 			slave.on('teardown', () => {
@@ -27,6 +27,8 @@ process.on('message', (message) => {
 			slave.on('data', (data) =>{
 				sendMessage('data', `got data`, data);
 			});
+
+			slave.startup();
 
 			break;
 		case 'data':

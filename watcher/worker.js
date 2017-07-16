@@ -1,81 +1,84 @@
 "use strict";
 
 const _ = require('lodash');
+const EventEmitter = require('events');
+
+const ChildSlave = require('../helper/child-workers/child-slave');
+const KrakenWrapper = require('../kraken');
+
+const ipcHelper = require('../helper/ipc-helper');
+const sendMessage = ipcHelper.sendMessage;
+const sendLogMessage = ipcHelper.sendLogMessage;
 
 const abs = Math.abs;
 
-const sendMessage = require('../helper').ipc.sendMessage;
+module.exports = class WatcherWorker extends ChildSlave(EventEmitter) {
+	constructor(options, params) {
+		super(...arguments);
 
-const KrakenWrapper = require('../kraken');
+		this._api = new KrakenWrapper(options.key, options.secret);
+		this._requestInterval = params.interval;
+		this._pair = params.pair;
+		this._interval = null;
+	}
 
-let LOG_PREFIX = '<bit-trader:watcher/worker>';
+	start(params) {
+		if (params) {
+			let newInterval = params.interval;
+			let newPair = params.pair;
 
-let api = null;
-let pair = '';
-let interval = null;
-let watchInterval = null;
+			if (newInterval && newPair) {
+				this._requestInterval = newInterval;
+				this._pair = newPair;
+			} else {
+				sendLogMessage('error', 'cannot updated worker params, because of missing params');
+			}
+		} else {
+			sendLogMessage('info', 'starting to work');
+			this._interval = setInterval(this.requestData.bind(this), this._requestInterval);
+		}
+	}
 
-function prepareData (data) {
-    data = _.get(data, pair);
+	stop(params) {
+		if (params) {
+			sendLogMessage('error', `this worker doesn't support params within the stop action`);
+		} else {
+			clearInterval(this._interval);
+		}
+	}
 
-    const low = data['l'].map(Number);
-    const high = data['h'].map(Number);
+	requestData() {
+		this._api.getTickForPair(this._pair).then((data) => {
+			return this.prepareData(data);
+		}).then((data) => {
+			this.emit('data', data);
+		});
+	}
 
-    const preparedData = {
-        low: {
-            today: low[0],
-            "24h": low[1]
-        },
-        high: {
-            today: high[0],
-            "24h": high[1]
-        },
-        volatility: {
-            today: abs(((high[0] - low[0]) / low[0]) * 100),
-            "24h": abs(((high[1] - low[1]) / low[1]) * 100)
-        },
-        current: Number(data['c'][0])
-    };
+	prepareData(data) {
+		const pair = this._pair;
+		data = _.get(data, pair);
 
-    return preparedData;
-}
+		const low = data['l'].map(Number);
+		const high = data['h'].map(Number);
 
-function watch() {
-    api.getTickForPair(pair)
-        .then((data) => {
-            sendMessage('data', `${LOG_PREFIX} got data`, {pair: pair, data: prepareData(data)});
-        })
-        .catch((err) => {
-        console.log(err);
-            sendMessage('error', `${LOG_PREFIX} got error`, err);
-        });
-}
+		const preparedData = {
+			pair: pair,
+			low: {
+				today: low[0],
+				"24h": low[1]
+			},
+			high: {
+				today: high[0],
+				"24h": high[1]
+			},
+			volatility: {
+				today: abs(((high[0] - low[0]) / low[0]) * 100),
+				"24h": abs(((high[1] - low[1]) / low[1]) * 100)
+			},
+			current: Number(data['c'][0])
+		};
 
-process.on('message', (message) => {
-    const data = message.data;
-
-    switch (message.type) {
-        case 'startup':
-            api = new KrakenWrapper(data.key, data.secret);
-            interval = data.interval;
-            pair = data.pair;
-
-            LOG_PREFIX = `${LOG_PREFIX} ${pair}`;
-
-            sendMessage('ready', `${LOG_PREFIX} ready`);
-
-            break;
-        case 'startWatching':
-            watchInterval = setInterval(watch.bind(this), interval);
-
-            sendMessage('generic', `${LOG_PREFIX} started watching`);
-
-            break;
-        case 'stopWatching':
-            clearInterval(watchInterval);
-
-            sendMessage('generic', `${LOG_PREFIX} stopped watching`);
-
-            break;
-    }
-});
+		return preparedData;
+	}
+};

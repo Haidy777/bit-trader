@@ -1,10 +1,12 @@
 {
-  "key": "",
-  "secret": "",
-  "pairs": ["EOSEUR"],
-  "strategieParams": {
-    "stepWidth": 0.5,
-    "stepAmount": 10,
-    "maxSteps": 3
-  }
+    "key": "",
+    "secret": "",
+    "pairs": [
+        "EOSEUR"
+    ],
+    "strategieParams": {
+        "stepWidth": 0.5,
+        "stepAmount": 10,
+        "maxSteps": 3
+    }
 }

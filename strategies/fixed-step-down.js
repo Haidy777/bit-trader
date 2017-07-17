@@ -20,8 +20,8 @@ module.exports = class FixedStepDownStrategie extends BaseStrategie {
         }
     }
 
-    getCurrentOrders () {
-        return this._api.getOpenOrders().then((orders)=>{
+    getCurrentOrders() {
+        return this._api.getOpenOrders().then((orders) => {
             console.log(orders);
         });
     }

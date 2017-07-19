@@ -66,7 +66,7 @@ setInterval(() => {
                     }
                 } else if (orderInfo.status === 'open') {
                     if (orderInfo.type === 'buy') {
-                        if (orderInfo.price - current >= strategyParams.minDiff * 4) {
+                        if (abs(orderInfo.price - current) >= strategyParams.minDiff * 4) {
                             kApi.cancelOrder(openOrder.id).then(() => {
                                 console.log(`${getTimestampFormatted()} canceled buy order because current price is to far, resetting`);
                                 openOrder = {id: null, sellPrice: 0, sellAmount: 0};

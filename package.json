@@ -4,7 +4,7 @@
     "description": "-",
     "main": "trade.js",
     "scripts": {
-        "test": "ava"
+        "test": ""
     },
     "repository": {
         "type": "git",
@@ -21,14 +21,8 @@
     "license": "MIT",
     "dependencies": {
         "bluebird": "^3.5.0",
-        "fs-extra": "^3.0.1",
         "kraken-api": "git+https://github.com/Mik13/npm-kraken-api.git",
         "lodash": "^4.17.4",
-        "moment": "^2.18.1",
-        "telebot": "^1.2.2",
-        "uuid": "^3.1.0"
-    },
-    "devDependencies": {
-        "ava": "^0.21.0"
+        "moment": "^2.18.1"
     }
 }

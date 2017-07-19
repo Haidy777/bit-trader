@@ -7,7 +7,7 @@ const PAIR_SPLIT_REGEX = /.{1,3}/g;
 
 module.exports = class KrakenWrapper {
     constructor(key, secret) {
-        this._api = new KrakenClient(key, secret, {timeout: 10000}).api;
+        this._api = new KrakenClient(key, secret, {timeout: 20000}).api;
 
         return this;
     }

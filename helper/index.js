@@ -1,5 +1,4 @@
 module.exports = {
-    ipc: require('./ipc-helper'),
     round: function (amount, digits = 5) {
         const multiplicator = Math.pow(10, digits);
 

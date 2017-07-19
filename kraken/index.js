@@ -110,4 +110,8 @@ module.exports = class KrakenWrapper {
             return info.txid[0];
         });
     }
+
+    cancelOrder(id) {
+        return this._api('CancelOrder', {txid: id});
+    }
 };

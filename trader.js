@@ -17,6 +17,8 @@ const kApi = new KrakenWrapper(krakenConfig.key, krakenConfig.secret);
 let isInTrade = false;
 let openOrder = {id: null, sellPrice: 0, sellAmount: 0};
 
+let cancelCounter = 0;
+
 function getTimestampFormatted() {
     return moment().format('YYYYMMDD HH:mm:ss');
 }
@@ -24,8 +26,6 @@ function getTimestampFormatted() {
 let mainStart = null;
 
 function main() {
-    console.log(`${getTimestampFormatted()} main function started`);
-
     mainStart = Date.now();
 
     kApi.getTickForPair(strategyParams.pair).then((tickData) => {
@@ -78,18 +78,26 @@ function main() {
                 } else if (orderInfo.status === 'open') {
                     if (orderInfo.type === 'buy') {
                         if (abs(orderInfo.price - current) >= strategyParams.minDiff * 4) {
-                            return kApi.cancelOrder(openOrder.id).then(() => {
-                                console.log(`${getTimestampFormatted()} canceled buy order because current price is to far, resetting`);
-                                openOrder = {id: null, sellPrice: 0, sellAmount: 0};
-                                isInTrade = false;
+                            if (cancelCounter >= 2) {
+                                return kApi.cancelOrder(openOrder.id).then(() => {
+                                    console.log(`${getTimestampFormatted()} canceled buy order because current price is to far, resetting`);
 
-                                return true;
-                            }).catch((err) => {
-                                console.error(`${getTimestampFormatted()} could not cancel buy order`);
-                                console.error(err);
+                                    openOrder = {id: null, sellPrice: 0, sellAmount: 0};
+                                    isInTrade = false;
 
+                                    cancelCounter = 0;
+
+                                    return true;
+                                }).catch((err) => {
+                                    console.error(`${getTimestampFormatted()} could not cancel buy order`);
+                                    console.error(err);
+
+                                    return true;
+                                });
+                            } else {
+                                cancelCounter++;
                                 return true;
-                            });
+                            }
                         } else {
                             return true;
                         }

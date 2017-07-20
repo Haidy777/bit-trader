@@ -21,7 +21,13 @@ function getTimestampFormatted() {
     return moment().format('YYYYMMDD HH:mm:ss');
 }
 
-setInterval(() => {
+let mainStart = null;
+
+function main() {
+    console.log(`${getTimestampFormatted()} main function started`);
+
+    mainStart = Date.now();
+
     kApi.getTickForPair(strategyParams.pair).then((tickData) => {
         tickData = _.get(tickData, strategyParams.pair);
 
@@ -51,34 +57,53 @@ setInterval(() => {
         console.log(`${getTimestampFormatted()} ${tickData.pair}: V ${round(tickData.volatility.today, 2)}% C ${round(current)} L ${round(tickData.low.today)} H ${round(tickData.high.today)}`);
 
         if (isInTrade && openOrder.id) {
-            kApi.getOrderInfo(openOrder.id).then((orderInfo) => {
+            return kApi.getOrderInfo(openOrder.id).then((orderInfo) => {
                 if (orderInfo.status === 'closed') {
                     if (orderInfo.type === 'sell') {
                         openOrder = {id: null, sellPrice: 0, sellAmount: 0};
                         isInTrade = false;
 
                         console.log(`${getTimestampFormatted()} finished microtrade cycle restarting`);
+
+                        return true;
                     } else if (orderInfo.type === 'buy') {
-                        kApi.execTrade(strategyParams.pair, 'sell', 'limit', openOrder.sellPrice, openOrder.sellAmount).then((oId) => {
-                            openOrder = {id: oId};
-                            console.log(`${getTimestampFormatted()} buy order executed, creating sell`);
-                        });
+                        return kApi.execTrade(strategyParams.pair, 'sell', 'limit', openOrder.sellPrice, openOrder.sellAmount)
+                            .then((oId) => {
+                                openOrder = {id: oId};
+                                console.log(`${getTimestampFormatted()} buy order executed, creating sell`);
+
+                                return true;
+                            });
                     }
                 } else if (orderInfo.status === 'open') {
                     if (orderInfo.type === 'buy') {
                         if (abs(orderInfo.price - current) >= strategyParams.minDiff * 4) {
-                            kApi.cancelOrder(openOrder.id).then(() => {
+                            return kApi.cancelOrder(openOrder.id).then(() => {
                                 console.log(`${getTimestampFormatted()} canceled buy order because current price is to far, resetting`);
                                 openOrder = {id: null, sellPrice: 0, sellAmount: 0};
                                 isInTrade = false;
+
+                                return true;
+                            }).catch((err) => {
+                                console.error(`${getTimestampFormatted()} could not cancel buy order`);
+                                console.error(err);
+
+                                return true;
                             });
+                        } else {
+                            return true;
                         }
+                    } else {
+                        return true;
                     }
                     //console.log(`${getTimestampFormatted()} waiting for order to fulfill`);
                 } else if (orderInfo.status === 'canceled') {
                     console.log(`${getTimestampFormatted()} order canceled resetting`);
+
                     openOrder = {id: null, sellPrice: 0, sellAmount: 0};
                     isInTrade = false;
+
+                    return true;
                 }
             });
         } else {
@@ -87,7 +112,7 @@ setInterval(() => {
             let buyValue = buyPrice * buyAmount;
             let sellPrice = buyPrice + (strategyParams.multiplicator * strategyParams.minDiff);
 
-            kApi.getTradableVolume().then((pairs) => {
+            return kApi.getTradableVolume().then((pairs) => {
                 return _.get(pairs, strategyParams.pair.substr(-3));
             }).then((maxTradeableMoney) => {
                 if (buyValue > maxTradeableMoney) {
@@ -102,19 +127,30 @@ setInterval(() => {
 
                 if (buyPrice >= maxMinPrice && sellPrice <= maxMaxPrice) {
                     isInTrade = true;
-                    kApi.execTrade(strategyParams.pair, 'buy', 'limit', buyPrice, buyAmount).then((oId) => {
-                        openOrder = {
-                            id: oId,
-                            sellPrice: sellPrice,
-                            sellAmount: buyAmount
-                        };
+                    return kApi.execTrade(strategyParams.pair, 'buy', 'limit', buyPrice, buyAmount)
+                        .then((oId) => {
+                            openOrder = {
+                                id: oId,
+                                sellPrice: sellPrice,
+                                sellAmount: buyAmount
+                            };
 
-                        console.log(`${getTimestampFormatted()} creating buy order (b: ${buyPrice}, s: ${sellPrice}, p: ${round((sellPrice - buyPrice) * buyAmount, 5)})`);
-                    });
+                            console.log(`${getTimestampFormatted()} creating buy order (b: ${buyPrice}, s: ${sellPrice}, p: ${round((sellPrice - buyPrice) * buyAmount, 5)})`);
+
+                            return true;
+                        });
                 } else {
                     console.log(`${getTimestampFormatted()} no trade possible`);
+
+                    return true;
                 }
             });
         }
+    }).then(() => {
+        console.log(`${getTimestampFormatted()} main function finished (took ${Date.now() - mainStart}ms)`);
+
+        setTimeout(main, strategyParams.checkInterval);
     });
-}, strategyParams.checkInterval);
+}
+
+main();

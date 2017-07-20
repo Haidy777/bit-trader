@@ -99,6 +99,8 @@ function main() {
                                 return true;
                             }
                         } else {
+                            cancelCounter = 0;
+
                             return true;
                         }
                     } else {

@@ -73,6 +73,9 @@ function main() {
                                 console.log(`${getTimestampFormatted()} buy order executed, creating sell`);
 
                                 return true;
+                            }).catch((err) => {
+                                console.error(`${getTimestampFormatted()} could not exec sell order`);
+                                console.error(err);
                             });
                     }
                 } else if (orderInfo.status === 'open') {
@@ -115,6 +118,9 @@ function main() {
 
                     return true;
                 }
+            }).catch((err) => {
+                console.error(`${getTimestampFormatted()} could not get order info`);
+                console.error(err);
             });
         } else {
             let buyPrice = current - strategyParams.minDiff;
@@ -148,18 +154,27 @@ function main() {
                             console.log(`${getTimestampFormatted()} creating buy order (b: ${buyPrice}, s: ${sellPrice}, p: ${round((sellPrice - buyPrice) * buyAmount, 5)})`);
 
                             return true;
+                        }).catch((err) => {
+                            console.error(`${getTimestampFormatted()} could not create buy order`);
+                            console.error(err);
                         });
                 } else {
                     console.log(`${getTimestampFormatted()} no trade possible`);
 
                     return true;
                 }
+            }).catch((err) => {
+                console.error(`${getTimestampFormatted()} could not get max tradeable volume`);
+                console.error(err);
             });
         }
     }).then(() => {
         console.log(`${getTimestampFormatted()} main function finished (took ${Date.now() - mainStart}ms)`);
 
         setTimeout(main, strategyParams.checkInterval);
+    }).catch((err) => {
+        console.error(`${getTimestampFormatted()} could not exec main function`);
+        console.error(err);
     });
 }
 

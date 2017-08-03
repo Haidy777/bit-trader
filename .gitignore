@@ -4,3 +4,5 @@ json-storage/*.json
 
 config/kraken.json
 config/telegram.json
+
+build

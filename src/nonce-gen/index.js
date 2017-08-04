@@ -1,27 +1,18 @@
 "use strict";
 
 const micro = require('micro');
-const request = require('request');
 const mri = require('mri');
 const hostname = require('os').hostname();
 
 const args = mri(process.argv.slice(2));
 
-const postRequest = async (url, payload) => {
-    return request({
-        method: 'post',
-        body: payload,
-        json: true,
-        url: url
-    });
-}; //TODO extract
-
-const getPort = async () => {
-    return await require('get-port')();
-}; //TODO extract
-
 const {router, post} = require('microrouter');
+const {getPort, postRequest} = require('../helper');
 
+const SERVICE_NAME = 'nonceGenerator';
+const SERVICE_MASTER_URL = `http://${args.master || 'localhost:3000'}`; //TODO docu serviceMaster can be configured through --master=XXXX:XXXX argument
+
+let serviceId = null;
 let currentNonce = Date.now() * 1000;
 
 const server = micro(
@@ -40,15 +31,23 @@ const server = micro(
 
 const main = async () => {
     const port = await getPort();
-
-    await postRequest(`http://${args.master || 'localhost:3000'}/register`, { //TODO docu serviceMaster can be configured through --master=XXXX:XXXX argument
-        serviceName: 'nonceGenerator',
+    const response = await postRequest(`${SERVICE_MASTER_URL}/register`, {
+        serviceName: SERVICE_NAME,
         url: `http://${hostname}:${port}`
     });
+
+    serviceId = response.id;
 
     console.log(`hostname: ${hostname}, port: ${port}`);
 
     server.listen(port);
 };
+
+process.on('exit', async () => {
+    await postRequest(`${SERVICE_MASTER_URL}/unregister`, {
+        serviceName: SERVICE_NAME,
+        id: serviceId
+    })
+});
 
 main();

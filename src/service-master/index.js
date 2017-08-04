@@ -6,6 +6,7 @@ const mri = require('mri');
 
 const {router, post} = require('microrouter');
 const {send, json} = micro;
+const {assign} = Object;
 
 const args = mri(process.argv.slice(2));
 let availableServices = {};
@@ -38,18 +39,16 @@ const server = micro(
         post('/register',
             async (req, res) => {
                 const {serviceName, url} = await json(req);
-                let services = availableServices[serviceName];
+                const services = assign({}, availableServices[serviceName]);
+                const id = uuid();
 
-                if (!services) {
-                    services = {};
-                }
-
-                services[uuid()] = url;
+                services[id] = url;
 
                 availableServices[serviceName] = services;
 
                 send(res, 200, {
-                    services: availableServices
+                    services: availableServices,
+                    id
                 });
             }
         ),

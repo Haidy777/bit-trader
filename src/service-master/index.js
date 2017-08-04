@@ -2,10 +2,12 @@
 
 const micro = require('micro');
 const uuid = require('uuid/v4');
+const mri = require('mri');
 
 const {router, post} = require('microrouter');
 const {send, json} = micro;
 
+const args = mri(process.argv.slice(2));
 let availableServices = {};
 
 //TODO round robin if multiple services are available per serviceName
@@ -70,4 +72,4 @@ const server = micro(
     )
 );
 
-server.listen(3000); //TODO make configurable
+server.listen(args.port || 3000); //TODO docu port can be submitted through --port=XXXX parameter

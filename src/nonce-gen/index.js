@@ -2,7 +2,10 @@
 
 const micro = require('micro');
 const request = require('request');
+const mri = require('mri');
 const hostname = require('os').hostname();
+
+const args = mri(process.argv.slice(2));
 
 const postRequest = async (url, payload) => {
     return request({
@@ -11,11 +14,11 @@ const postRequest = async (url, payload) => {
         json: true,
         url: url
     });
-};
+}; //TODO extract
 
 const getPort = async () => {
     return await require('get-port')();
-};
+}; //TODO extract
 
 const {router, post} = require('microrouter');
 
@@ -38,7 +41,7 @@ const server = micro(
 const main = async () => {
     const port = await getPort();
 
-    await postRequest('http://localhost:3000/register', { //TODO make servicemaster configurable
+    await postRequest(`http://${args.master || 'localhost:3000'}/register`, { //TODO docu serviceMaster can be configured through --master=XXXX:XXXX argument
         serviceName: 'nonceGenerator',
         url: `http://${hostname}:${port}`
     });

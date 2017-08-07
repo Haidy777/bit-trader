@@ -19,6 +19,8 @@
   "dependencies": {
     "fs-extra": "^4.0.1",
     "get-port": "^3.1.0",
+    "kraken-api": "git+https://github.com/Mik13/npm-kraken-api.git",
+    "lodash": "^4.17.4",
     "micro": "^8.0.1",
     "microrouter": "^2.2.1",
     "mri": "^1.1.0",

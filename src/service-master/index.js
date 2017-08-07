@@ -3,6 +3,7 @@
 const micro = require('micro');
 const uuid = require('uuid/v4');
 const mri = require('mri');
+const _ = require('lodash');
 
 const {router, post} = require('microrouter');
 const {send, json} = micro;
@@ -28,9 +29,7 @@ const server = micro(
                 const services = availableServices[serviceName];
 
                 if (services) {
-                    send(res, 200, {
-                        endpoints: services
-                    });
+                    send(res, 200, _.map(services));
                 } else {
                     send(res, 404);
                 }

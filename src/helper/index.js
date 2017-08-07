@@ -2,7 +2,7 @@
 
 const request = require('request');
 
-module.exports = {
+const HelperFunctions = {
     getPort: async () => {
         return await require('get-port')();
     },
@@ -22,5 +22,16 @@ module.exports = {
                 }
             });
         });
+    },
+
+    getServiceUrl: async (url, serviceName) => {
+        const urls = await HelperFunctions.postRequest(`${url}/get`, {serviceName});
+        return urls[0];
+    },
+
+    getNonce: async (url) => {
+        return HelperFunctions.postRequest(url);
     }
 };
+
+module.exports = HelperFunctions;

@@ -9,7 +9,7 @@ const args = mri(process.argv.slice(2));
 const {router, post} = require('microrouter');
 const {getPort, postRequest} = require('../helper');
 
-const SERVICE_NAME = 'nonceGenerator';
+const SERVICE_NAME = 'nonceGenerator'; //TODO extract
 const SERVICE_MASTER_URL = `http://${args.master || 'localhost:3000'}`; //TODO docu serviceMaster can be configured through --master=XXXX:XXXX argument
 
 let serviceId = null;

@@ -23,9 +23,14 @@ const server = micro(
     router(
         post('/pairs',
             async (req, res) => {
-                const response = await getNonce(nonceGenUrl);
+                send(res, 200, await krakenApi.getTradeablePairs(await getNonce(nonceGenUrl)));
+            }
+        ),
+        post('/ticker',
+            async (req, res) => {
+                const {pairs} = await json(req);
 
-                send(res, 200, await krakenApi.getTradeablePairs(response.nonce));
+                send(res, 200, await krakenApi.getTickerInformation(await getNonce(nonceGenUrl), pairs));
             }
         )
     )

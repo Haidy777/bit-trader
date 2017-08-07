@@ -30,7 +30,8 @@ const HelperFunctions = {
     },
 
     getNonce: async (url) => {
-        return HelperFunctions.postRequest(url);
+        const response = await HelperFunctions.postRequest(url);
+        return response.nonce;
     }
 };
 

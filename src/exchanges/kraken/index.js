@@ -4,7 +4,7 @@ const micro = require('micro');
 const mri = require('mri');
 const hostname = require('os').hostname();
 const KrakenApi = require('./api');
-const KrakenConfig = require('../../../config/kraken.json');
+const KrakenConfig = require('../../../config/config.json').KRAKEN;
 
 const {router, post} = require('microrouter');
 const {getPort, postRequest, getServiceUrl, getNonce} = require('../../helper');

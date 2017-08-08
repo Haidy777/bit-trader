@@ -1,8 +1,7 @@
 node_modules
 .idea
-json-storage/*.json
 
-config/kraken.json
 config/telegram.json
+config/config.json
 
 build

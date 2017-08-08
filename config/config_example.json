@@ -1,0 +1,11 @@
+{
+    "exchange": "KRAKEN",
+    "KRAKEN": {
+        "key": "",
+        "secret": "",
+        "watchedPairs": [
+            "BCHEUR",
+            "EOSEUR"
+        ]
+    }
+}

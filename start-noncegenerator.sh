@@ -1,2 +1,2 @@
 #!/bin/bash
-node ./build/nonce-gen/index.js --master=localhost:3000
+node ./build/nonce-generator/index.js --master=localhost:3000

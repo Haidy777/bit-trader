@@ -2,6 +2,7 @@
 
 const micro = require('micro');
 const mri = require('mri');
+const logger = require('pino')({name: '<bit-trader:exchanges/kraken>'});
 const hostname = require('os').hostname();
 const KrakenApi = require('./api');
 const KrakenConfig = require('../../../config/config.json').KRAKEN;
@@ -23,11 +24,13 @@ const server = micro(
     router(
         post('/pairs',
             async (req, res) => {
+                logger.debug('got pairs request');
                 send(res, 200, await krakenApi.getTradeablePairs(await getNonce(nonceGenUrl)));
             }
         ),
         post('/ticker',
             async (req, res) => {
+                logger.debug('got ticker request');
                 const {pairs} = await json(req);
 
                 send(res, 200, await krakenApi.getTickerInformation(await getNonce(nonceGenUrl), pairs));
@@ -50,11 +53,12 @@ const main = async () => {
 
         krakenApi = new KrakenApi(KrakenConfig.key, KrakenConfig.secret);
 
-        console.log(`hostname: ${hostname}, port: ${port}`);
+        logger.info(`listening at ${hostname}:${port}`);
 
         server.listen(port);
     } else {
-        //TODO
+        logger.error(`could not find a nonce generator!`);
+        process.exit(-1);
     }
 };
 

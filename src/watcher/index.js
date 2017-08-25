@@ -5,6 +5,7 @@ const mri = require('mri');
 const io = require('socket.io');
 const _ = require('lodash');
 const hostname = require('os').hostname();
+const logger = require('pino')({name: '<bit-trader:watcher>'});
 const CONFIG = require('../../config/config.json');
 const SocketHelper = require('./socket');
 
@@ -12,7 +13,7 @@ const args = mri(process.argv.slice(2));
 
 const {getPort, postRequest, getServiceUrl} = require('../helper');
 
-const SERVICE_NAME = 'watcher'; //TODO extract
+const SERVICE_NAME = 'watcher';
 const SERVICE_MASTER_URL = `http://${args.master || 'localhost:3000'}`; //TODO docu serviceMaster can be configured through --master=XXXX:XXXX argument
 
 let serviceId = null;
@@ -29,20 +30,29 @@ const socketServer = io(server, {
 });
 
 const loop = async () => {
+    logger.info('starting loop');
     const pairsToCheck = await SocketHelper.getTickPairsToCheck(socketServer, mappedPairs);
 
-    console.log(`got clients for pairs: ${pairsToCheck.join(', ')}`);
+    logger.info(`got ${pairsToCheck.length} pairs to check`);
+    logger.debug(`pairs: ${pairsToCheck.join(', ')}`);
 
     pairsToCheck.forEach(async (pair) => {
-        const tickData = await postRequest(`${exchangeUrl}/ticker`, {pairs: pair});//TODO get tick id from availablePairs since this is only the name which could differ
+        logger.debug(`requesting pair ${pair}`);
+
+        const pairName = _.find(availablePairs, {id: pair});
+
+        const tickData = await postRequest(`${exchangeUrl}/ticker`, {pairs: pairName});
+
         socketServer.to(pair).emit('data', tickData);
     });
 
-    setTimeout(loop, 60000);//TODO
+    logger.info('finishing loop');
+
+    setTimeout(loop, 60000);//TODO make configurable
 };
 
 const main = async () => {
-    exchangeUrl = await getServiceUrl(SERVICE_MASTER_URL, `exchange${CONFIG.exchange}`); //TODO extract "exchange"
+    exchangeUrl = await getServiceUrl(SERVICE_MASTER_URL, `exchange${CONFIG.exchange}`);
 
     if (exchangeUrl) {
         availablePairs = await postRequest(`${exchangeUrl}/pairs`);
@@ -58,7 +68,7 @@ const main = async () => {
 
             serviceId = response.id;
 
-            console.log(`hostname: ${hostname}, port: ${port}`);
+            logger.info(`listening at ${hostname}:${port}`);
 
             socketServer.on('connection', SocketHelper.onConnection);
 
@@ -66,10 +76,10 @@ const main = async () => {
 
             server.listen(port);
         } else {
-            //TODO
+            logger.error(`exchange does not have any pairs`);
         }
     } else {
-        //TODO
+        logger.error(`could not find an exchange-service for exchange ${CONFIG.exchange}`);
     }
 };
 

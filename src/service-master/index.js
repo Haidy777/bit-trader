@@ -4,12 +4,16 @@ const micro = require('micro');
 const uuid = require('uuid/v4');
 const mri = require('mri');
 const _ = require('lodash');
+const logger = require('pino')({name: '<bit-trader:service-master>'});
 
 const {router, post} = require('microrouter');
 const {send, json} = micro;
 const {assign} = Object;
 
 const args = mri(process.argv.slice(2));
+
+const PORT = args.port || 3000; //TODO docu port can be submitted through --port=XXXX parameter
+
 let availableServices = {};
 
 //TODO round robin if multiple services are available per serviceName
@@ -45,6 +49,8 @@ const server = micro(
 
                 availableServices[serviceName] = services;
 
+                logger.info(`registering service ${serviceName} at ${url} with id ${id}`);
+
                 send(res, 200, {
                     services: availableServices,
                     id
@@ -57,6 +63,8 @@ const server = micro(
                 const services = availableServices[serviceName];
 
                 if (services) {
+                    logger.info(`unregistering service with id ${id}`);
+
                     delete services[id];
 
                     send(res, 200, {
@@ -70,4 +78,6 @@ const server = micro(
     )
 );
 
-server.listen(args.port || 3000); //TODO docu port can be submitted through --port=XXXX parameter
+logger.info(`listening on port ${PORT}`);
+
+server.listen(PORT);
